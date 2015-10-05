@@ -8,6 +8,7 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
+import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
@@ -17,8 +18,19 @@ import java.io.PrintWriter;
 import java.net.InetAddress;
 import java.net.Socket;
 import java.net.UnknownHostException;
+import java.text.DateFormat;
+import java.text.Format;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
 import java.util.Arrays;
+import java.util.Calendar;
+import java.util.Date;
+import java.util.GregorianCalendar;
+import java.util.HashMap;
+import java.util.Locale;
+import java.util.Map;
 import java.util.Scanner;
+import java.util.TimeZone;
 
 /**
  * UrlCache Class
@@ -33,6 +45,8 @@ public class UrlCache {
 	PrintWriter outStream;
 	InputStream inStream;
 	byte[] myByteArr = new byte[1024];
+	private Map<String, Long> catalog = new HashMap<String, Long>();
+	private IOUtility inOut;
 
 	String header;
 
@@ -45,6 +59,31 @@ public class UrlCache {
 	 *             if encounters any errors/exceptions
 	 */
 	public UrlCache() throws UrlCacheException {
+		
+		//Instantiate Input/Output utility object
+		inOut = new IOUtility();
+		
+		//Check local cache, load the catalog if it exists
+		if(inOut.checkLocalCache())
+		{
+			catalog = inOut.readCatalogFromFile();
+		}
+		
+		//create catalog file if none exists
+		else{
+			
+			try {
+				inOut.createCatalogFile();				
+			}
+			catch(IOException e)
+			{
+				e.printStackTrace();
+			}
+			catch(UrlCacheException u)
+			{
+				System.out.print(u.getMessage());
+			}
+		}	
 	}
 
 	/**
@@ -67,39 +106,13 @@ public class UrlCache {
 		String path = parsePath(url);
 		String fileName = parseTail(url);
 		String concatPath = path + "/" + fileName;
+		
+		//set the boolean flag to true if the file exists in the catalog,
+		// false otherwise
+		boolean fileExists = checkCatalogForFile(url);	
 
-		BufferedReader bf = null;
-
-		try {
-
-			httpSocket = new Socket(InetAddress.getByName(hostName), 80);
-			outStream = new PrintWriter((httpSocket.getOutputStream()));
-
-			// outStream.print("GET " + path + "/" + fileName +
-			// " HTTP/1.1\r\n");
-			outStream.print("GET " + concatPath + " HTTP/1.1\r\n");
-			outStream.print("Host: people.ucalgary.ca\r\n\r\n");
-			outStream.flush();
-
-			inStream = httpSocket.getInputStream();
-
-			path = path.substring(1);
-			path = path.replace("/", "\\");
-			// path.replaceAll("\\" + fileName, "");
-			String absPath = System.getProperty("user.dir")
-					+ System.getProperty("file.separator") + path;
-			File outFile = new File(absPath, fileName);
-			outFile.getParentFile().mkdirs();
-			getHeaderInfo(inStream, outFile);
-	
-			inStream.close();
-			outStream.close();
-		} catch (UnknownHostException e) {
-			System.out.println("ERROR: " + e.getMessage());
-
-		} catch (IOException e) {
-			System.out.println("ERROR: " + e.getMessage());
-		} 
+		downloadFile(hostName, port, concatPath, fileName, fileExists);
+		
 	}
 
 	/**
@@ -114,11 +127,63 @@ public class UrlCache {
 	 *             errors/exceptions
 	 */
 	public long getLastModified(String url) throws UrlCacheException {
-		return 0;
+		
+			return catalog.get(url);		
+	}
+	
+	private void downloadFile(String hostName, int port, String path, String fileName, boolean exists)
+	{
+		try {
+
+			httpSocket = new Socket(InetAddress.getByName(hostName), port);
+			outStream = new PrintWriter((httpSocket.getOutputStream()));
+			outStream.print("GET " + path + " HTTP/1.1\r\n");
+			outStream.print("Host: people.ucalgary.ca\r\n\r\n");
+			if(exists)
+			{
+				long lastMod = getLastModified(hostName+path);
+				String date = inOut.convertDateToString(lastMod);
+				
+				outStream.print("If-modified-since: " + date);
+			}
+			outStream.flush();
+			inStream = httpSocket.getInputStream();
+			
+			String absPath = System.getProperty("user.dir")
+					+ System.getProperty("file.separator") + path;
+			File outFile = new File(absPath, fileName);
+			outFile.getParentFile().mkdirs();
+			getHeaderInfo(inStream, outFile);
+			
+			addToCatalog(hostName +path, getLastModDateFromHeader());			
+			inOut.writeCatalogToFile(catalog);
+			
+			//catalog = inOut.readCatalogFromFile();
+
+			inStream.close();
+			outStream.close();
+		} catch (UnknownHostException e) {
+			System.out.println("ERROR: " + e.getMessage());
+
+		} catch (IOException e) {
+			System.out.println("ERROR: " + e.getMessage());
+		}
+		catch (UrlCacheException u)
+		{
+			System.out.println(u.getMessage());
+		}
+		
 	}
 
 	private String parseUrl(String in) {
-		String[] arr = in.split("/");
+		String[] arr1 = in.split("//");
+		String[] arr;
+		if(arr1.length>1) { 
+			arr = arr1[1].split("/");
+		}
+		else{
+			 arr = in.split("/");
+		}
 		String url = arr[0];
 		return url;
 	}
@@ -131,6 +196,23 @@ public class UrlCache {
 			port = Integer.parseInt(stringPort);
 		}
 		return port;
+	}
+	
+	private void downloadExistingFile(String hostName, int port, String path, String fileName)
+	{
+		try {
+		httpSocket = new Socket(InetAddress.getByName(hostName), port);
+		outStream = new PrintWriter((httpSocket.getOutputStream()));
+		outStream.print("GET " + path + " HTTP/1.1\r\n");
+		outStream.print("Host: people.ucalgary.ca\r\n\r\n");
+		outStream.flush();
+		
+			inStream = httpSocket.getInputStream();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		
 	}
 
 	private String parsePath(String in) {
@@ -170,74 +252,67 @@ public class UrlCache {
 		byte[] buffer = new byte[1024 * 25];
 		byte[] img = new byte[1024 * 25];
 		boolean eoh = false;
-		
+
 		try {
 			outFile.createNewFile();
-		} catch (IOException e1) {
-			// TODO Auto-generated catch block
-			e1.printStackTrace();
-		}
-		try {
-
 			out = new FileOutputStream(outFile.getAbsolutePath());
 
-			try {
-				while ((count = in.read(buffer)) > 0) {
-					offset = 0;
-					if (!(eoh)) {
-						head = new String(buffer, 0, count);
-						int indexOfEoh = head.indexOf("\r\n\r\n");
-						if (indexOfEoh != -1) {
-							calcCount = count - indexOfEoh - 4;
-							offset = indexOfEoh + 4;
-							eoh = true;
-							header = new String(buffer, 0, offset);
-					        
-						} else {
-							//count = 0;
-						}
+			while ((count = in.read(buffer)) > 0) {
+
+				offset = 0;
+
+				if (!(eoh)) {
+					head = new String(buffer, 0, count);
+					int indexOfEoh = head.indexOf("\r\n\r\n");
+					if (indexOfEoh != -1) {
+						offset = indexOfEoh + 4;
+						eoh = true;
+						header = new String(buffer, 0, offset);
+						img = Arrays.copyOfRange(buffer, offset, count);
+						out.write(img);
+					} else {
+						count = 0;
 					}
 				}
-			} catch (IOException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			}
-			try {
-				out.write(img);
-			} catch (IOException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
+				
+				else {
+					out.write(buffer, 0, count);
+				}				
+				out.flush();
+
 			}
 
-		} catch (FileNotFoundException e) {
+			out.close();
+
+		} catch (IOException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
-		/*
-		 * BufferedReader br = new BufferedReader(new InputStreamReader(in));
-		 * String temp; String header =""; int bytes = 0;
-		 * 
-		 * FileWriter fw;
-		 * 
-		 * 
-		 * try { //temp = in.read(myByteArr) String tempPath =
-		 * outFile.getAbsolutePath(); fw = new
-		 * FileWriter(outFile.getAbsolutePath()); OutputStream testOut = new
-		 * FileOutputStream (outFile.getAbsolutePath());
-		 * 
-		 * while(!(temp.equals(""))) { header += temp + ("\n"); temp =
-		 * br.readLine(); }
-		 * 
-		 * while((bytes = in.read(myByteArr, 0 , bytes))>0) {
-		 * testOut.write(myByteArr, 0, bytes); }
-		 * 
-		 * 
-		 * 
-		 * } catch (IOException e) { // TODO Auto-generated catch block
-		 * e.printStackTrace(); }
-		 * 
-		 * return header;
-		 */
 
 	}
+	
+	private void addToCatalog(String path, long date)
+	{
+		catalog.put(path, date);		
+	}
+	
+	private boolean checkCatalogForFile(String filePath)
+	{
+		return catalog.containsKey(filePath);
+	}
+	
+	private long getLastModDateFromHeader()
+	{
+		int a = header.indexOf("Last-Modified:");
+		String date = header.substring(a+15, a+44).trim();
+	 
+		Date d = inOut.convertToDate(date);
+		return d.getTime();
+		
+		
+		
+	}
+
+	
+
 }

@@ -1,0 +1,9 @@
+HTTP/1.1 200 OK
+Date: Mon, 05 Oct 2015 00:18:29 GMT
+Server: Apache/2.0.52 (Red Hat)
+Last-Modified: Fri, 31 Aug 2007 04:21:06 GMT
+ETag: "2100457-c12-26ceb080"
+Accept-Ranges: bytes
+Content-Length: 3090
+Connection: close
+Content-Type: image/gif

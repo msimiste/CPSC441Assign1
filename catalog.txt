@@ -1,0 +1,3 @@
+people.ucalgary.ca/~mghaderi/majid.jpg=1337702064000
+people.ucalgary.ca/~mghaderi/test/uc.gif=1188534066000
+people.ucalgary.ca/~mghaderi/cpsc441/index.html=1443759598000
