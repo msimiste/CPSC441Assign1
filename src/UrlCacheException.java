@@ -8,6 +8,11 @@
 public class UrlCacheException extends Exception {
 
     /**
+	 * 
+	 */
+	private static final long serialVersionUID = 1L;
+
+	/**
      * Constructor calls Exception super class with message
      */
     public UrlCacheException() {

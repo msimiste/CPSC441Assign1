@@ -27,6 +27,7 @@ public class ConvertDateTester {
 			e.printStackTrace();
 		}
 		
+		String test1 = date.toString();
 		String test2 = d.format(date);
 		return date;
 

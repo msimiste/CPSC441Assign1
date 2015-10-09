@@ -1,3 +1,4 @@
-people.ucalgary.ca/~mghaderi/majid.jpg=1337702064000
 people.ucalgary.ca/~mghaderi/test/uc.gif=1188534066000
-people.ucalgary.ca/~mghaderi/cpsc441/index.html=1443759598000
+users.eastlink.ca/~shimmyy/dowdypage/images/deck3.jpg=1055103944000
+people.ucalgary.ca/~mghaderi/test/test.html=1443821027000
+people.ucalgary.ca/~mghaderi/test/a1.pdf=1443211730000
