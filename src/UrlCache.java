@@ -34,8 +34,7 @@ public class UrlCache {
 	 * the cache already exists then load it. If any errors then throw
 	 * exception.
 	 *
-	 * @throws UrlCacheException
-	 *             if encounters any errors/exceptions
+	 * @throws UrlCacheException if encounters any errors/exceptions
 	 */
 	public UrlCache() throws UrlCacheException {
 
@@ -52,8 +51,9 @@ public class UrlCache {
 
 			try {
 				inOut.createCatalogFile();
-			} catch (IOException e) {
-				e.printStackTrace();
+			} catch (Exception e) {
+				//e.printStackTrace();
+				System.out.println(e.getMessage());
 			} 
 		}
 	}
@@ -62,8 +62,7 @@ public class UrlCache {
 	 * Downloads the object specified by the parameter url if the local copy is
 	 * out of date.
 	 *
-	 * @param url
-	 *            URL of the object to be downloaded. It is a fully qualified
+	 * @param url - URL of the object to be downloaded. It is a fully qualified
 	 *            URL.
 	 * @throws UrlCacheException
 	 *             if encounters any errors/exceptions
@@ -90,8 +89,7 @@ public class UrlCache {
 	 * Returns the Last-Modified time associated with the object specified by
 	 * the parameter url.
 	 *
-	 * @param url
-	 *            URL of the object
+	 * @param url URL of the object
 	 * @return the Last-Modified time in millisecond as in Date.getTime()
 	 * @throws UrlCacheException
 	 *             if the specified url is not in the cache, or there are other
@@ -99,7 +97,11 @@ public class UrlCache {
 	 */
 	public long getLastModified(String url) throws UrlCacheException {
 
-		return catalog.get(url);
+		Long temp = catalog.get(url);
+		 if (temp == null){ throw new UrlCacheException();
+		 }
+		return temp;
+		
 	}
 	
 	
@@ -107,16 +109,11 @@ public class UrlCache {
  * Initiates communication with the server, determines if a regular GET or a conditional GET should be used
  * ie determines if there is a copy of the file in local cache and if so issues a conditional GET request
  * 
- * @param hostName
- * 				the hostName(server) to be used in the GET request
- * @param port
- *            the port to be used in the server/client communication
- * @param path
- *            the path/directory where the file exists locally and on the server
- * @param fileName
- *               the name of the file including its extension
- * @param exists
- *              boolean indicating if the file exists in local cache or not
+ * @param hostName - the hostName(server) to be used in the GET request
+ * @param port - the port to be used in the server/client communication
+ * @param path - the path/directory where the file exists locally and on the server
+ * @param fileName - the name of the file including its extension
+ * @param exists - boolean indicating if the file exists in local cache or not
  * @throws UrlCacheException
  */
 	private void beginDownloadStream(String hostName, int port, String path,
@@ -135,12 +132,12 @@ public class UrlCache {
 				String date = inOut.convertDateToString(lastMod);
 
 				outStream.print("If-modified-since: " + date + "\r\n");
-				outStream.print("Host: people.ucalgary.ca\r\n\r\n");
+				outStream.print("Host: "+hostName+"\r\n\r\n");
 
 			}
 
 			else {
-				outStream.print("Host: people.ucalgary.ca\r\n\r\n");
+				outStream.print("Host: "+hostName+"\r\n\r\n");
 			}
 			
 			outStream.flush();
@@ -163,10 +160,8 @@ public class UrlCache {
 	
 	/**
 	 * 
-	 * @param in
-	 * 			URL to be parsed
-	 * @return
-	 * 		parsed URL which is a string
+	 * @param in- URL to be parsed
+	 * @return parsed URL which is a string
 	 */     
 	private String parseUrl(String in) {
 		String[] arr1 = in.split("//");
@@ -182,10 +177,8 @@ public class UrlCache {
 
 	/**
 	 * 
-	 * @param in
-	 * 		URL which may or may not contain a port number to be parsed
-	 * @return
-	 * 		the port number parsed from a URL or the default port 80
+	 * @param in URL which may or may not contain a port number to be parsed
+	 * @return the port number parsed from a URL or the default port 80
 	 */
 	private int getPort(String in) {
 		int port = 80;
@@ -199,10 +192,8 @@ public class UrlCache {
 
 	/**
 	 * 
-	 * @param in
-	 *   		URL which contains a filepath
-	 * @return
-	 * 		 a filepath string
+	 * @param in URL which contains a filepath
+	 * @return a filepath string
 	 */
 	private String parsePath(String in) {
 		String[] arr = in.split("/");
@@ -218,10 +209,8 @@ public class UrlCache {
 
 	/**
 	 * 
-	 * @param in
-	 * 			URL to be parsed
-	 * @return
-	 * 		returns the last component of a URL the file name including extension
+	 * @param in URL to be parsed
+	 * @return returns the last component of a URL the file name including extension
 	 */
 	private String parseTail(String in) {
 		String[] arr = in.split("/");
@@ -233,9 +222,8 @@ public class UrlCache {
 
 	/**
 	 * 
-	 * @param hostName
-	 * 			string hostname which may or may not contain a port
-	 * @return
+	 * @param hostName string hostname which may or may not contain a port
+	 * @return hostname with the port removed if it exists
 	 * 			
 	 */
 	private String removePortFromHostname(String hostName) {
@@ -249,12 +237,9 @@ public class UrlCache {
 
 	/**
 	 * 
-	 * @param path
-	 * 			The path which represents the folder structure on both locally and on the server
-	 * @param fileName
-	 *          The name of the file
-	 * @param in
-	 * 			The input stream which is a bytestream
+	 * @param path The path which represents the folder structure on both locally and on the server
+	 * @param fileName The name of the file
+	 * @param in The input stream which is a bytestream
 	 * @throws UrlCacheException
 	 */
 	private void writeToFile(String path, String fileName, InputStream in) throws UrlCacheException {
@@ -278,7 +263,7 @@ public class UrlCache {
 				// if the bytestream contains the header, remove it
 				if (!(eoh)) {
 					head = new String(buffer, 0, count); // save the header to check it
-					int indexOfEoh = head.indexOf("\r\n\r\n"); //save the indext of the end of the header
+					int indexOfEoh = head.indexOf("\r\n\r\n"); //save the index of the end of the header
 					if (indexOfEoh != -1) {
 						offset = indexOfEoh + 4; // this is where the bytes for the file begin
 						eoh = true;		
@@ -286,7 +271,8 @@ public class UrlCache {
 						
 						//check the header to see if the file has been modified or not
 						if (!(inspectHeader())) {
-							System.out.println("The file: "+ path+ " is the most recent");
+							
+							System.out.println("The file: "+ path + " is the most recent");
 							break;
 						}
 						
@@ -294,7 +280,9 @@ public class UrlCache {
 						//update the catalog and catalog file, 
 						//start writing bytes to the file.
 						if ((inspectHeader())) {
-							File outFile = makeFileAndDir(path, fileName);
+							String newPath = path.substring(0, path.lastIndexOf("/"));
+							File outFile = makeFileAndDir(newPath, fileName);
+							
 							out = new FileOutputStream(
 									outFile.getAbsolutePath());
 							long date = getLastModDateFromHeader();
@@ -331,22 +319,27 @@ public class UrlCache {
 	
 	/**
 	 * // checks header to see if it is ok to create a file
-	 * @return
-	 * 		true if it is ok false if not
+	 * @return true if it is ok false if not
+	 * @throws UrlCacheException 
 	 */
-	private boolean inspectHeader() {
+	private boolean inspectHeader() throws UrlCacheException {
 
-		return header.contains("HTTP/1.1 200 OK");
+		if(header.contains("HTTP/1.1 2")){
+			return true;
+		}
+		else if(header.contains("HTTP/1.1 304"))
+		{
+			return false;
+		}
+		throw new UrlCacheException();
+		
 	}
 
 	/**
 	 * 
-	* @param path
-	 * 			The path which represents the folder structure on both locally and on the server
-	 * @param fileName
-	 *          The name of the file
-	 * @return
-	 * 		a newly created file
+	* @param path The path which represents the folder structure on both locally and on the server
+	 * @param fileName The name of the file
+	 * @return a newly created file
 	 */		
 	private File makeFileAndDir(String path, String fileName) {
 		// concatenate the file path
@@ -369,20 +362,16 @@ public class UrlCache {
 
 	/**
 	 * 
-	 * @param path
-	 * 			The path which represents the folder structure on both locally and on the server
-	 * @param date
-	 * 			the date when the file was last modified
+	 * @param path The path which represents the folder structure on both locally and on the server
+	 * @param date the date when the file was last modified
 	 */
 	private void addToCatalog(String path, long date) {
 		catalog.put(path, date);
 	}
 
 	/**	 * 
-	 * @param filePath
-	 * 			The path which represents the folder structure on both locally and on the server
-	 * @return
-	 * 		true if the cataloc conatains the filepath, false if not
+	 * @param filePath The path which represents the folder structure on both locally and on the server
+	 * @return true if the catalog contains the filepath, false if not
 	 */
 	private boolean checkCatalogForFile(String filePath) {
 		return catalog.containsKey(filePath);
@@ -390,8 +379,7 @@ public class UrlCache {
 
 	/**
 	 * 
-	 * @return
-	 * 		the date in integer format , ie the date is parsed from the header and converted to long
+	 * @return the date in integer format , ie the date is parsed from the header and converted to long
 	 */
 	private long getLastModDateFromHeader() {
 		int a = header.indexOf("Last-Modified:");

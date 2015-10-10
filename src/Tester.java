@@ -14,7 +14,8 @@ public class Tester {
 		// these are just some samples
 		String[] url = {"people.ucalgary.ca/~mghaderi/test/test.html",
 						"people.ucalgary.ca/~mghaderi/test/uc.gif",
-						"people.ucalgary.ca:80/~mghaderi/test/a1.pdf"};
+						"people.ucalgary.ca:80/~mghaderi/test/a1.pdf", 
+						"www.iconfinder.com/404notfound" /*test for cache exception*/};
 						//"users.eastlink.ca/~shimmyy/dowdypage/images/deck3.jpg"};
 		
 		// this is a very basic tester
@@ -23,11 +24,13 @@ public class Tester {
 			UrlCache cache = new UrlCache();
 			
 			for (int i = 0; i < url.length; i++)
-				cache.getObject(url[i]);
+			{	cache.getObject(url[i]);
+				System.out.println("Last-Modified for " + url[i] + " is: " + cache.getLastModified(url[i]) + " milliseconds");
+			}
 			
-			System.out.println("Last-Modified for " + url[0] + " is: " + cache.getLastModified(url[0]));
-			//cache.getObject(url[0]);
-			System.out.println("Last-Modified for " + url[1] + " is: " + cache.getLastModified(url[1]));
+			//System.out.println("Last-Modified for " + url[0] + " is: " + cache.getLastModified(url[0]));
+			
+			//System.out.println("Last-Modified for " + url[1] + " is: " + cache.getLastModified(url[1]));
 		}
 		catch (UrlCacheException e) {
 			System.out.println("There was a problem: " + e.getMessage());

@@ -6,7 +6,14 @@ import java.util.Date;
 import java.util.GregorianCalendar;
 import java.util.TimeZone;
 
-
+/**]
+ * 
+ * @author msimiste
+ * This Class was created in order to test out the Create Date Utility.
+ * It is not used as part of Assignemnt1 other than the fact that the 
+ * methods in IOUtility were tested based on this class.
+ * @version 1.0  Oct 02, 2015
+ */
 public class ConvertDateTester {
 	
 	public ConvertDateTester()
